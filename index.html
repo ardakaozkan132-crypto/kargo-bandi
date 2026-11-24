@@ -6,137 +6,96 @@
 <title>Kargo Bandı: Antika Atölyesi</title>
 <link rel="manifest" href="manifest.json">
 <style>
-*{margin:0;padding:0;box-sizing:border-box;user-select:none;-webkit-user-select:none;touch-action:none}
-html,body{width:100%;height:100%;overflow:hidden;background:#1e140c;font-family:sans-serif;color:#f7e7ce}
-canvas{display:block;width:100%;height:100%}
-#ui{position:fixed;inset:0;background:rgba(20,12,6,.9);display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:20px;z-index:10}
-#ui.hide{display:none}
-h1{font-size:32px;color:#ffcf70;margin-bottom:10px}
-p{max-width:380px;font-size:15px;color:#e2cbb0;margin-bottom:20px;line-height:1.4}
-#stat{background:#3e2816;border:1px solid #a67438;border-radius:10px;padding:12px 20px;margin-bottom:18px;display:none}
-button{background:#d48f28;color:#1e1004;font-weight:bold;font-size:18px;padding:14px 32px;border:2px solid #ffe094;border-radius:12px;cursor:pointer}
+*{margin:0;padding:0;box-sizing:border-box;user-select:none;-webkit-user-select:none;touch-action:manipulation}
+html,body{width:100%;height:100%;overflow:hidden;font-family:'Segoe UI',system-ui,sans-serif;color:#f7e7ce;background:repeating-linear-gradient(180deg,#3d2514 0,#3d2514 46px,#2a180c 46px,#2a180c 49px)}
+.scr{position:fixed;inset:0;display:none;flex-direction:column;align-items:center;padding:16px;overflow-y:auto;z-index:1}
+.scr.on{display:flex}
+.top{width:100%;max-width:420px;display:flex;justify-content:flex-end;margin-bottom:6px}
+.pill{background:#1f1208;border:2px solid #d4a338;border-radius:20px;padding:5px 14px;display:flex;align-items:center;gap:8px;font-weight:bold;color:#ffe699}
+.dot{width:15px;height:15px;border-radius:50%;background:radial-gradient(circle,#fff099,#d49b1a);border:2px solid #8c6208}
+h1{font-family:Georgia,serif;font-size:clamp(30px,8vw,40px);letter-spacing:2px;color:#f5deb3;text-shadow:0 3px 0 #1f1106;margin-top:6px}
+.sub{font-family:Georgia,serif;font-size:19px;color:#e6cfa8;margin-bottom:10px}
+.btn{width:100%;max-width:350px;padding:13px;border-radius:14px;border:2px solid #f5e6c8;font-size:17px;font-weight:bold;cursor:pointer;text-align:center;box-shadow:0 4px 0 rgba(0,0,0,.45);margin-bottom:10px}
+.btn:active{transform:translateY(2px)}
+.bg{background:linear-gradient(180deg,#5ba852,#43853b);color:#fff}
+.bt{background:linear-gradient(180deg,#c9a66b,#a8844c);color:#241407}
+.by{background:linear-gradient(180deg,#f5c842,#d9a31e);color:#241407}
+.bb{background:linear-gradient(180deg,#3b82f6,#1d4ed8);color:#fff;font-size:15px;max-width:250px;padding:10px}
+.br{background:linear-gradient(180deg,#d94343,#a82424);color:#fff}
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:10px;width:100%;max-width:350px}
+.g2 .btn{margin:0;font-size:15px}
+.g3{display:grid;grid-template-columns:repeat(3,1fr);gap:9px;width:100%;max-width:390px;margin:12px 0}
+.card{background:rgba(36,20,8,.85);border:2px solid #5c3c22;border-radius:12px;padding:9px 5px;text-align:center;opacity:.55;cursor:pointer}
+.card.op{opacity:1;border-color:#d4a338;background:rgba(68,41,18,.9)}
+.sitem{width:100%;max-width:380px;background:rgba(66,40,18,.9);border:2px solid #a8844c;border-radius:13px;padding:11px 14px;display:flex;justify-content:space-between;align-items:center;margin-bottom:9px;position:relative}
+.bdg{position:absolute;top:-9px;right:14px;background:#c93838;color:#fff;font-size:10px;font-weight:bold;padding:2px 7px;border-radius:7px}
+.box{background:#3b2312;border:2px solid #c9a66b;border-radius:16px;padding:20px;width:100%;max-width:350px;margin:auto}
+.row{display:flex;justify-content:space-between;align-items:center;padding:11px 0;font-weight:600}
+.tg{width:50px;height:26px;background:#241407;border:2px solid #c9a66b;border-radius:20px;position:relative;cursor:pointer}
+.tg::after{content:'';position:absolute;top:2px;left:3px;width:18px;height:18px;border-radius:50%;background:#f5e6c8;transition:.2s}
+.tg.on{background:#4d9444}.tg.on::after{left:25px}
+#toast{position:fixed;bottom:22px;left:50%;transform:translateX(-50%);background:#241407;border:2px solid #d4a338;color:#f5deb3;padding:9px 16px;border-radius:12px;font-weight:bold;font-size:13px;z-index:50;display:none;white-space:nowrap}
+#s-game{justify-content:space-between;padding:12px}
+.hud{width:100%;max-width:420px;display:flex;justify-content:space-between;align-items:center;font-weight:bold}
+.wbox{width:100%;max-width:390px;background:rgba(36,20,8,.65);border:2px solid #a8844c;border-radius:15px;padding:10px;display:flex;flex-direction:column;align-items:center}
+.pbar{width:88%;height:13px;background:#1f1208;border:2px solid #c9a66b;border-radius:9px;overflow:hidden;margin-top:6px}
+.pfill{height:100%;background:linear-gradient(90deg,#f5c842,#68d391);width:0%;transition:width .2s}
+.belt{width:100%;max-width:420px;height:88px;background:#2b2b2b;border-top:4px solid #a8844c;border-bottom:4px solid #a8844c;position:relative;display:flex;align-items:center;justify-content:center}
+.tz{width:72px;height:72px;border:3px solid #d4b886;background:rgba(255,255,255,.12);border-radius:10px;z-index:2;pointer-events:none}
+.cbtns{width:100%;max-width:400px;display:grid;grid-template-columns:repeat(3,1fr);gap:9px}
+.cb{border-radius:13px;border:2px solid #fff4;padding:10px 4px;color:#fff;font-weight:bold;font-size:15px;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:5px}
+.cb:active{transform:translateY(2px)}
+.cr{background:#c93232}.cbl{background:#2563eb}.cy{background:#ca8a04}
+.dots{display:flex;gap:4px;background:rgba(0,0,0,.35);padding:8px 14px;border-radius:7px}
+.dots i{width:12px;height:12px;border-radius:50%;border:2px solid #fff;display:block}
 </style>
 </head>
 <body>
-<div id="ui">
-  <h1 id="t">Kargo Bandı</h1>
-  <p id="d">Banttan gelen antikaları aşağıdaki doğru ahşap sandıklara sürükle ve paketle!</p>
-  <div id="stat"></div>
-  <button id="btn">MESAİYE BAŞLA</button>
+<div id="toast"></div>
+<div id="s-menu" class="scr on">
+  <div class="top"><div class="pill"><div class="dot"></div><span class="cv">0</span></div></div>
+  <h1>KARGO BANDI</h1><div class="sub">Antika Atölyesi</div>
+  <svg width="80" height="88" viewBox="0 0 100 110"><circle cx="50" cy="14" r="10" fill="none" stroke="#c9a66b" stroke-width="4"/><circle cx="50" cy="62" r="38" fill="#d4b475" stroke="#8c6830" stroke-width="5"/><circle cx="50" cy="62" r="30" fill="#f5ebd6"/><path d="M50 62V40M50 62l15 8" stroke="#241407" stroke-width="4" stroke-linecap="round"/></svg>
+  <div style="color:#ffd54f;font-weight:bold;margin:8px 0 12px">⭐ <span id="tst">0</span> / 36</div>
+  <button class="btn bg" onclick="daily()">Günlük hediyeni al!</button>
+  <button class="btn bg" style="padding:17px;font-size:21px" onclick="playCur()">Oyna</button>
+  <div class="g2">
+    <button class="btn bt" onclick="go('s-lvl')">Bölümler</button>
+    <button class="btn by" onclick="go('s-shop')">Mağaza</button>
+    <button class="btn bt" onclick="go('s-how')">Nasıl Oynanır?</button>
+    <button class="btn bt" onclick="go('s-set')">Ayarlar</button>
+  </div>
 </div>
-<canvas id="c"></canvas>
+<div id="s-lvl" class="scr">
+  <div style="width:100%;max-width:390px;display:flex;justify-content:space-between;align-items:center"><h2 style="font-family:Georgia,serif">Bölümler</h2><div class="pill"><div class="dot"></div><span class="cv">0</span></div></div>
+  <div class="g3" id="lgrid"></div>
+  <button class="btn by" onclick="go('s-menu')">Ana Menü</button>
+</div>
+<div id="s-shop" class="scr">
+  <h2 style="font-family:Georgia,serif;margin-bottom:8px">Mağaza</h2>
+  <div class="pill" style="margin-bottom:12px"><div class="dot"></div><span class="cv">0</span></div>
+  <div id="slist" style="width:100%;display:flex;flex-direction:column;align-items:center"></div>
+  <button class="btn by" onclick="go('s-menu')">Ana Menü</button>
+</div>
+<div id="s-how" class="scr"><div class="box"><h2 style="text-align:center;margin-bottom:12px">Nasıl Oynanır?</h2><p style="font-size:14px;line-height:1.5;margin-bottom:16px">1. Üstteki antikayı tamir etmek için ekranda yazan renkleri bekle.<br><br>2. Kargo bandındaki parça ortadaki <b>hedef kareye</b> girdiğinde alttaki doğru renk butonuna bas!<br><br>3. Yanlış renge basar veya parçayı kaçırırsan canın azalır.</p><button class="btn by" onclick="go('s-menu')">Anladım</button></div></div>
+<div id="s-set" class="scr"><div class="box"><h2 style="text-align:center;margin-bottom:12px">Ayarlar</h2><div id="setrows"></div><button class="btn br" style="margin-top:14px" onclick="rst()">İlerlemeyi Sıfırla</button><button class="btn by" onclick="go('s-menu')">Geri</button></div></div>
+<div id="s-game" class="scr">
+  <div class="hud"><span id="glvl">Bölüm 1</span><button class="bt" style="padding:4px 10px;border-radius:8px;border:1px solid #fff;font-weight:bold" onclick="play=false;go('s-menu')">☰ Menü</button><span style="color:#ffe699">🪙 <span class="cv">0</span></span><span id="gliv">❤️❤️❤️</span></div>
+  <div class="wbox"><canvas id="ac" width="140" height="115"></canvas><div class="pbar"><div class="pfill" id="pf"></div></div><b style="margin-top:5px">Tamir %<span id="gpct">0</span></b><small id="gnm" style="color:#d6bc94"></small><small id="ghnt" style="color:#ffd54f;margin-top:2px"></small></div>
+  <div class="belt"><canvas id="bc" style="position:absolute;inset:0;width:100%;height:100%"></canvas><div class="tz"></div></div>
+  <button class="btn bb" onclick="slow()">Bandı yavaşlat · 40 altın</button>
+  <div class="cbtns">
+    <button class="cb cr" onclick="hit('red')"><div class="dots"><i style="background:#ff6b6b"></i><i style="background:#ff6b6b"></i></div>Kırmızı</button>
+    <button class="cb cbl" onclick="hit('blue')"><div class="dots"><i style="background:#60a5fa"></i><i style="background:#60a5fa"></i></div>Mavi</button>
+    <button class="cb cy" onclick="hit('yellow')"><div class="dots"><i style="background:#facc15"></i><i style="background:#facc15"></i></div>Sarı</button>
+  </div>
+</div>
+<div id="s-end" class="scr" style="background:rgba(15,8,3,.88)"><div class="box" style="text-align:center"><h2 id="et" style="color:#ffd54f">Tamir Tamamlandı!</h2><div id="es" style="font-size:30px;margin:10px 0">⭐⭐⭐</div><p id="ed" style="margin-bottom:16px"></p><button class="btn bg" id="enx" onclick="start(ci+1)">Sonraki Bölüm</button><button class="btn by" onclick="go('s-menu')">Ana Menü</button></div></div>
 <script>
 if('serviceWorker' in navigator)navigator.serviceWorker.register('sw.js').catch(()=>{});
-const c=document.getElementById('c'),x=c.getContext('2d'),ui=document.getElementById('ui'),btn=document.getElementById('btn'),tEl=document.getElementById('t'),dEl=document.getElementById('d'),stEl=document.getElementById('stat');
-let W=0,H=0,bins=[],items=[],parts=[],texts=[],run=false,score=0,best=+localStorage.getItem('kb_best')||0,lives=3,lvl=1,combo=0,done=0,belt=0,timer=0,drag=null,dx=0,dy=0,last=0,ac=null;
-const CATS=[
-  {id:'v',n:'Çini Vazo',e:'🏺',bg:'#2b6cb0',bd:'#63b3ed'},
-  {id:'w',n:'Cep Saati',e:'🕰️',bg:'#b7791f',bd:'#f6e05e'},
-  {id:'c',n:'Pusula',e:'🧭',bg:'#2f855a',bd:'#68d391'},
-  {id:'k',n:'Kral Tacı',e:'👑',bg:'#9b2c2c',bd:'#fc8181'}
-];
-function snd(f,tp,du){
-  try{
-    if(!ac)ac=new(window.AudioContext||window.webkitAudioContext)();
-    if(ac.state==='suspended')ac.resume();
-    const o=ac.createOscillator(),g=ac.createGain();
-    o.type=tp;o.frequency.value=f;g.gain.setValueAtTime(.15,ac.currentTime);
-    g.gain.exponentialRampToValueAtTime(.001,ac.currentTime+du);
-    o.connect(g);g.connect(ac.destination);o.start();o.stop(ac.currentTime+du);
-  }catch(e){}
-}
-function resize(){
-  W=c.width=innerWidth;H=c.height=innerHeight;
-  const cols=W<540?2:4,rows=W<540?2:1,p=12,top=H*.55,ah=H*.4,bw=(W-p*(cols+1))/cols,bh=(ah-p*(rows-1))/rows;
-  bins=CATS.map((cat,i)=>({...cat,x:p+(i%cols)*(bw+p),y:top+Math.floor(i/cols)*(bh+p),w:bw,h:bh,pu:0}));
-}
-addEventListener('resize',resize);
-function spawn(){
-  const cat=CATS[Math.floor(Math.random()*CATS.length)],r=Math.min(36,Math.max(25,W*.065));
-  items.push({cat,x:-r,y:H*.32,r,drag:false});
-}
-function fx(px,py,col,txt){
-  for(let i=0;i<14;i++){const a=Math.random()*6.28,s=2+Math.random()*4;parts.push({x:px,y:py,vx:Math.cos(a)*s,vy:Math.sin(a)*s-2,l:1,col});}
-  if(txt)texts.push({x:px,y:py-15,txt,col,l:1});
-}
-function start(){
-  score=0;lives=3;lvl=1;combo=0;done=0;items=[];parts=[];texts=[];drag=null;timer=.4;run=true;
-  ui.classList.add('hide');spawn();
-}
-function over(){
-  run=false;if(score>best){best=score;localStorage.setItem('kb_best',best);}
-  tEl.textContent='Mesai Bitti!';dEl.textContent='Antikalar kırıldı veya banttan düştü.';
-  stEl.style.display='block';stEl.innerHTML=`<b>Puan: ${score}</b><br>En Yüksek: ${best}`;
-  btn.textContent='TEKRAR OYNA';ui.classList.remove('hide');
-}
-function pos(e){const r=c.getBoundingClientRect(),p=e.touches?e.touches[0]:e;return{x:p.clientX-r.left,y:p.clientY-r.top};}
-function down(e){
-  if(!run)return;const p=pos(e);
-  for(let i=items.length-1;i>=0;i--){
-    const it=items[i];
-    if(Math.hypot(p.x-it.x,p.y-it.y)<=it.r*1.5){drag=it;it.drag=true;dx=it.x-p.x;dy=it.y-p.y;snd(320,'sine',.07);break;}
-  }
-}
-function move(e){if(run&&drag){e.preventDefault();const p=pos(e);drag.x=p.x+dx;drag.y=p.y+dy;}}
-function up(){
-  if(!run||!drag)return;const it=drag;it.drag=false;drag=null;
-  const b=bins.find(b=>it.x>=b.x&&it.x<=b.x+b.w&&it.y>=b.y&&it.y<=b.y+b.h);
-  if(b){
-    items.splice(items.indexOf(it),1);
-    if(b.id===it.cat.id){
-      combo++;done++;const pts=10+combo*2;score+=pts;b.pu=1;snd(440+combo*25,'triangle',.14);
-      fx(it.x,it.y,b.bd,`+${pts}`);if(done%10===0){lvl++;fx(W/2,H*.2,'#ffcf70',`SEVİYE ${lvl}!`);}
-    }else{
-      combo=0;lives--;snd(140,'sawtooth',.25);fx(it.x,it.y,'#fc8181','YANLIŞ!');if(lives<=0)over();
-    }
-  }else it.y=H*.32;
-}
-c.addEventListener('mousedown',down);addEventListener('mousemove',move);addEventListener('mouseup',up);
-c.addEventListener('touchstart',down,{passive:false});addEventListener('touchmove',move,{passive:false});addEventListener('touchend',up);
-btn.addEventListener('click',start);
-function loop(ts){
-  const dt=Math.min(.05,(ts-last)/1000||0);last=ts;
-  if(run){
-    const spd=75+(lvl-1)*18;belt=(belt+spd*dt)%40;timer-=dt;
-    if(timer<=0){spawn();timer=Math.max(.85,2.2-(lvl-1)*.16);}
-    for(let i=items.length-1;i>=0;i--){
-      const it=items[i];
-      if(!it.drag){
-        it.x+=spd*dt;it.y=H*.32;
-        if(it.x-it.r>W){items.splice(i,1);combo=0;lives--;snd(140,'sawtooth',.25);fx(W-60,H*.28,'#fc8181','KAÇTI!');if(lives<=0)over();}
-      }
-    }
-    bins.forEach(b=>{if(b.pu>0)b.pu=Math.max(0,b.pu-dt*3);});
-    for(let i=parts.length-1;i>=0;i--){const p=parts[i];p.x+=p.vx;p.y+=p.vy;p.vy+=.15;p.l-=dt*1.8;if(p.l<=0)parts.splice(i,1);}
-    for(let i=texts.length-1;i>=0;i--){const f=texts[i];f.y-=40*dt;f.l-=dt*1.3;if(f.l<=0)texts.splice(i,1);}
-  }
-  x.fillStyle='#23150a';x.fillRect(0,0,W,H);
-  x.fillStyle='rgba(0,0,0,.5)';x.fillRect(0,0,W,56);
-  x.font='bold 18px sans-serif';x.fillStyle='#ffcf70';x.textAlign='left';x.fillText('💰 '+score,16,35);
-  x.textAlign='center';x.fillStyle='#e2cbb0';x.fillText('Seviye '+lvl,W/2,35);
-  x.textAlign='right';x.fillText('❤️'.repeat(Math.max(0,lives))+'🖤'.repeat(Math.max(0,3-lives)),W-16,35);
-  const by=H*.32;x.fillStyle='#3b3734';x.fillRect(0,by-40,W,80);
-  x.fillStyle='#6e4722';x.fillRect(0,by-48,W,8);x.fillRect(0,by+40,W,8);
-  x.strokeStyle='#555';x.lineWidth=3;
-  for(let i=-40+belt;i<W+40;i+=40){x.beginPath();x.moveTo(i,by-35);x.lineTo(i+15,by);x.lineTo(i,by+35);x.stroke();}
-  bins.forEach(b=>{
-    x.save();if(b.pu>0){const s=1+Math.sin(b.pu*3.14)*.06;x.translate(b.x+b.w/2,b.y+b.h/2);x.scale(s,s);x.translate(-(b.x+b.w/2),-(b.y+b.h/2));}
-    x.fillStyle=b.bg;x.beginPath();x.roundRect(b.x,b.y,b.w,b.h,12);x.fill();
-    x.strokeStyle=b.bd;x.lineWidth=3;x.stroke();
-    x.font=Math.min(40,b.h*.42)+'px sans-serif';x.textAlign='center';x.textBaseline='middle';x.fillText(b.e,b.x+b.w/2,b.y+b.h*.42);
-    x.font='bold 14px sans-serif';x.fillStyle='#fff';x.fillText(b.n,b.x+b.w/2,b.y+b.h*.78);x.restore();
-  });
-  items.forEach(it=>{
-    x.save();x.translate(it.x,it.y);if(it.drag)x.scale(1.2,1.2);
-    x.fillStyle='#8c5828';x.beginPath();x.arc(0,0,it.r,0,6.28);x.fill();
-    x.strokeStyle='#ffcf70';x.lineWidth=3;x.stroke();
-    x.font=(it.r*1.2)+'px sans-serif';x.textAlign='center';x.textBaseline='middle';x.fillText(it.cat.e,0,2);x.restore();
-  });
-  parts.forEach(p=>{x.globalAlpha=Math.max(0,p.l);x.fillStyle=p.col;x.beginPath();x.arc(p.x,p.y,5,0,6.28);x.fill();});
-  texts.forEach(f=>{x.globalAlpha=Math.max(0,f.l);x.font='bold 18px sans-serif';x.fillStyle=f.col;x.textAlign='center';x.fillText(f.txt,f.x,f.y);});
-  x.globalAlpha=1;requestAnimationFrame(loop);
-}
-resize();requestAnimationFrame(loop);
-</script>
-</body>
-</html>
+const LV=[
+  {n:'Cep Saati',t:'w',r:['red','blue'],h:'Kırmızı ve mavi parçalarla onar.',g:4,s:115},
+  {n:'Cep Saati',t:'w',r:['red','yellow'],h:'Kırmızı ve sarı parçaları yakala.',g:5,s:126},
+  {n:'Retro Radyo',t:'r',r:['blue','yellow'],h:'Mavi ve sarı parçalarla onar.',g:5,s:134},
+  {n:'Retro Radyo',t:'r',r:['red','blue','yellow'],h:'Üç rengi de yakala!',g:6,s:142},
+  {n:'Müzik Kutusu',t:'r',r:['yellow','blue'],h:'Sarı ve mavi parçaları tak.',g:6,s:150},

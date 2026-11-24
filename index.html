@@ -5,18 +5,349 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>Kargo Bandı: Antika Atölyesi</title>
   <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#1e140c">
   <style>
-    * { margin: 0; padding: 0; box-sizing: border-box; }
-    html, body { width: 100%; height: 100%; overflow: hidden; background: #000; }
-    iframe { width: 100%; height: 100%; border: none; }
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      user-select: none;
+      -webkit-user-select: none;
+      touch-action: none;
+    }
+    html, body {
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background: #1e140c;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      color: #f7e7ce;
+    }
+    canvas {
+      display: block;
+      width: 100%;
+      height: 100%;
+    }
+    #overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(20, 12, 6, 0.88);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      padding: 24px;
+      z-index: 10;
+    }
+    #overlay.hidden {
+      display: none;
+    }
+    .badge {
+      background: #8c5828;
+      color: #fff3d6;
+      padding: 6px 14px;
+      border-radius: 20px;
+      font-size: 13px;
+      letter-spacing: 1px;
+      margin-bottom: 12px;
+      border: 1px solid #d4a359;
+    }
+    h1 {
+      font-size: clamp(26px, 6vw, 42px);
+      color: #ffcf70;
+      text-shadow: 0 3px 10px rgba(0,0,0,0.8);
+      margin-bottom: 10px;
+    }
+    p {
+      max-width: 420px;
+      font-size: 15px;
+      line-height: 1.5;
+      color: #e2cbb0;
+      margin-bottom: 24px;
+    }
+    .stats-box {
+      background: rgba(62, 40, 22, 0.8);
+      border: 1px solid #a67438;
+      border-radius: 12px;
+      padding: 14px 24px;
+      margin-bottom: 22px;
+      display: none;
+    }
+    .stats-box.show {
+      display: block;
+    }
+    button {
+      background: linear-gradient(180deg, #e5a93c 0%, #b8771e 100%);
+      color: #241304;
+      font-weight: bold;
+      font-size: 18px;
+      padding: 14px 36px;
+      border: 2px solid #ffe094;
+      border-radius: 14px;
+      cursor: pointer;
+      box-shadow: 0 6px 20px rgba(0,0,0,0.6);
+      transition: transform 0.1s;
+    }
+    button:active {
+      transform: scale(0.95);
+    }
   </style>
 </head>
 <body>
-  <iframe src="https://evonx.ai" allow="autoplay; fullscreen; gamepad" allowfullscreen></iframe>
-  <script>
-    if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register('sw.js');
+
+<div id="overlay">
+  <div class="badge">ANTİKA AYRIŞTIRMA ATÖLYESİ</div>
+  <h1 id="title-text">Kargo Bandı</h1>
+  <p id="desc-text">Banttan gelen tarihi eserleri düşmeden aşağıdaki doğru ahşap sandıklara sürükle ve paketle!</p>
+  <div class="stats-box" id="final-stats">
+    <div id="final-score" style="font-size: 20px; font-weight: bold; color: #ffcf70;">Skor: 0</div>
+    <div id="best-score" style="font-size: 14px; color: #d8be9e; margin-top: 4px;">En Yüksek: 0</div>
+  </div>
+  <button id="start-btn">MESAİYE BAŞLA</button>
+</div>
+
+<canvas id="gameCanvas"></canvas>
+
+<script>
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('sw.js').catch(() => {});
+  }
+
+  const canvas = document.getElementById('gameCanvas');
+  const ctx = canvas.getContext('2d');
+  const overlay = document.getElementById('overlay');
+  const startBtn = document.getElementById('start-btn');
+  const titleText = document.getElementById('title-text');
+  const descText = document.getElementById('desc-text');
+  const finalStats = document.getElementById('final-stats');
+  const finalScoreEl = document.getElementById('final-score');
+  const bestScoreEl = document.getElementById('best-score');
+
+  let W = 0, H = 0;
+  function resize() {
+    W = canvas.width = window.innerWidth;
+    H = canvas.height = window.innerHeight;
+    layoutBins();
+  }
+  window.addEventListener('resize', resize);
+
+  // Ses Efektleri (Harici dosya gerektirmez)
+  const AudioCtx = window.AudioContext || window.webkitAudioContext;
+  let audioCtx = null;
+  function playTone(freq, type, duration, vol = 0.15) {
+    try {
+      if (!audioCtx) audioCtx = new AudioCtx();
+      if (audioCtx.state === 'suspended') audioCtx.resume();
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+      osc.type = type;
+      osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+      gain.gain.setValueAtTime(vol, audioCtx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + duration);
+      osc.connect(gain);
+      gain.connect(audioCtx.destination);
+      osc.start();
+      osc.stop(audioCtx.currentTime + duration);
+    } catch (e) {}
+  }
+
+  function soundSuccess(combo) {
+    const base = 440 + Math.min(combo, 10) * 35;
+    playTone(base, 'triangle', 0.14, 0.18);
+    setTimeout(() => playTone(base * 1.25, 'sine', 0.18, 0.15), 70);
+  }
+  function soundError() {
+    playTone(150, 'sawtooth', 0.25, 0.2);
+    setTimeout(() => playTone(110, 'sawtooth', 0.3, 0.2), 110);
+  }
+  function soundPick() {
+    playTone(320, 'sine', 0.08, 0.1);
+  }
+
+  // Antika Kategorileri
+  const CATEGORIES = [
+    { id: 'vase', name: 'Çini Vazo', icon: '🏺', color: '#2b6cb0', border: '#63b3ed' },
+    { id: 'watch', name: 'Cep Saati', icon: ' pocket', emoji: '🕰️', color: '#b7791f', border: '#f6e05e' },
+    { id: 'compass', name: 'Pusula', emoji: '🧭', color: '#2f855a', border: '#68d391' },
+    { id: 'crown', name: 'Kral Tacı', emoji: '👑', color: '#9b2c2c', border: '#fc8181' }
+  ];
+  CATEGORIES[0].emoji = '🏺';
+
+  let bins = [];
+  function layoutBins() {
+    const cols = W < 540 ? 2 : 4;
+    const rows = W < 540 ? 2 : 1;
+    const pad = 14;
+    const areaTop = H * 0.56;
+    const areaH = H * 0.38;
+    const binW = (W - pad * (cols + 1)) / cols;
+    const binH = (areaH - pad * (rows - 1)) / rows;
+
+    bins = CATEGORIES.map((cat, i) => {
+      const c = i % cols;
+      const r = Math.floor(i / cols);
+      return {
+        ...cat,
+        x: pad + c * (binW + pad),
+        y: areaTop + r * (binH + pad),
+        w: binW,
+        h: binH,
+        pulse: 0
+      };
+    });
+  }
+
+  // Oyun Durumu
+  let gameRunning = false;
+  let score = 0;
+  let bestScore = parseInt(localStorage.getItem('kargo_best') || '0', 10);
+  let lives = 3;
+  let level = 1;
+  let combo = 0;
+  let sortedCount = 0;
+  let items = [];
+  let particles = [];
+  let floatingTexts = [];
+  let beltOffset = 0;
+  let spawnTimer = 0;
+  let draggedItem = null;
+  let dragOffsetX = 0;
+  let dragOffsetY = 0;
+
+  function getBeltY() {
+    return H * 0.32;
+  }
+
+  function spawnItem() {
+    const cat = CATEGORIES[Math.floor(Math.random() * CATEGORIES.length)];
+    const radius = Math.min(36, Math.max(26, W * 0.065));
+    items.push({
+      cat: cat,
+      x: -radius - 10,
+      y: getBeltY(),
+      r: radius,
+      isDragging: false,
+      wobble: Math.random() * Math.PI * 2
+    });
+  }
+
+  function addParticles(x, y, color) {
+    for (let i = 0; i < 16; i++) {
+      const ang = Math.random() * Math.PI * 2;
+      const spd = 2 + Math.random() * 5;
+      particles.push({
+        x, y,
+        vx: Math.cos(ang) * spd,
+        vy: Math.sin(ang) * spd - 2,
+        life: 1,
+        color
+      });
     }
-  </script>
-</body>
-</html>
+  }
+
+  function addFloatingText(x, y, text, color) {
+    floatingTexts.push({ x, y, text, color, life: 1 });
+  }
+
+  function startGame() {
+    score = 0;
+    lives = 3;
+    level = 1;
+    combo = 0;
+    sortedCount = 0;
+    items = [];
+    particles = [];
+    floatingTexts = [];
+    draggedItem = null;
+    spawnTimer = 0.5;
+    gameRunning = true;
+    overlay.classList.add('hidden');
+    spawnItem();
+  }
+
+  function endGame() {
+    gameRunning = false;
+    if (score > bestScore) {
+      bestScore = score;
+      localStorage.setItem('kargo_best', bestScore);
+    }
+    titleText.textContent = 'Mesai Bitti!';
+    descText.textContent = 'Atölyedeki antikalar kırıldı veya banttan düştü. Tekrar deneyip rekorunu geç!';
+    finalStats.classList.add('show');
+    finalScoreEl.textContent = `Toplam Puan: ${score}`;
+    bestScoreEl.textContent = `En Yüksek Puan: ${bestScore}`;
+    startBtn.textContent = 'TEKRAR OYNA';
+    overlay.classList.remove('hidden');
+  }
+
+  // Dokunmatik ve Fare Kontrolleri
+  function getPointerPos(e) {
+    const rect = canvas.getBoundingClientRect();
+    const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+    const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+    return { x: clientX - rect.left, y: clientY - rect.top };
+  }
+
+  function onDown(e) {
+    if (!gameRunning) return;
+    const pos = getPointerPos(e);
+    for (let i = items.length - 1; i >= 0; i--) {
+      const it = items[i];
+      const dist = Math.hypot(pos.x - it.x, pos.y - it.y);
+      if (dist <= it.r * 1.45) {
+        draggedItem = it;
+        it.isDragging = true;
+        dragOffsetX = it.x - pos.x;
+        dragOffsetY = it.y - pos.y;
+        soundPick();
+        break;
+      }
+    }
+  }
+
+  function onMove(e) {
+    if (!gameRunning || !draggedItem) return;
+    e.preventDefault();
+    const pos = getPointerPos(e);
+    draggedItem.x = pos.x + dragOffsetX;
+    draggedItem.y = pos.y + dragOffsetY;
+  }
+
+  function onUp() {
+    if (!gameRunning || !draggedItem) return;
+    const it = draggedItem;
+    it.isDragging = false;
+    draggedItem = null;
+
+    let droppedBin = null;
+    for (const b of bins) {
+      if (it.x >= b.x && it.x <= b.x + b.w && it.y >= b.y && it.y <= b.y + b.h) {
+        droppedBin = b;
+        break;
+      }
+    }
+
+    if (droppedBin) {
+      const idx = items.indexOf(it);
+      if (idx > -1) items.splice(idx, 1);
+
+      if (droppedBin.id === it.cat.id) {
+        combo++;
+        sortedCount++;
+        const pts = 10 + combo * 2;
+        score += pts;
+        droppedBin.pulse = 1;
+        soundSuccess(combo);
+        addParticles(it.x, it.y, droppedBin.border);
+        addFloatingText(it.x, it.y - 20, `+${pts}${combo > 1 ? ' (x' + combo + ')' : ''}`, '#68d391');
+
+        if (sortedCount % 10 === 0) {
+          level++;
+          addFloatingText(W / 2, H * 0.2, `SEVİYE ${level}!`, '#ffcf70');
+        }
+      } else {
+        combo = 0;
+        lives--;
+        soundError();
+        addParticles(it.x, it.y, '#fc8181');

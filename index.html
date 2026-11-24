@@ -1,353 +1,142 @@
 <!DOCTYPE html>
 <html lang="tr">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>Kargo Bandı: Antika Atölyesi</title>
-  <link rel="manifest" href="manifest.json">
-  <meta name="theme-color" content="#1e140c">
-  <style>
-    * {
-      margin: 0;
-      padding: 0;
-      box-sizing: border-box;
-      user-select: none;
-      -webkit-user-select: none;
-      touch-action: none;
-    }
-    html, body {
-      width: 100%;
-      height: 100%;
-      overflow: hidden;
-      background: #1e140c;
-      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-      color: #f7e7ce;
-    }
-    canvas {
-      display: block;
-      width: 100%;
-      height: 100%;
-    }
-    #overlay {
-      position: fixed;
-      inset: 0;
-      background: rgba(20, 12, 6, 0.88);
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      text-align: center;
-      padding: 24px;
-      z-index: 10;
-    }
-    #overlay.hidden {
-      display: none;
-    }
-    .badge {
-      background: #8c5828;
-      color: #fff3d6;
-      padding: 6px 14px;
-      border-radius: 20px;
-      font-size: 13px;
-      letter-spacing: 1px;
-      margin-bottom: 12px;
-      border: 1px solid #d4a359;
-    }
-    h1 {
-      font-size: clamp(26px, 6vw, 42px);
-      color: #ffcf70;
-      text-shadow: 0 3px 10px rgba(0,0,0,0.8);
-      margin-bottom: 10px;
-    }
-    p {
-      max-width: 420px;
-      font-size: 15px;
-      line-height: 1.5;
-      color: #e2cbb0;
-      margin-bottom: 24px;
-    }
-    .stats-box {
-      background: rgba(62, 40, 22, 0.8);
-      border: 1px solid #a67438;
-      border-radius: 12px;
-      padding: 14px 24px;
-      margin-bottom: 22px;
-      display: none;
-    }
-    .stats-box.show {
-      display: block;
-    }
-    button {
-      background: linear-gradient(180deg, #e5a93c 0%, #b8771e 100%);
-      color: #241304;
-      font-weight: bold;
-      font-size: 18px;
-      padding: 14px 36px;
-      border: 2px solid #ffe094;
-      border-radius: 14px;
-      cursor: pointer;
-      box-shadow: 0 6px 20px rgba(0,0,0,0.6);
-      transition: transform 0.1s;
-    }
-    button:active {
-      transform: scale(0.95);
-    }
-  </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>Kargo Bandı: Antika Atölyesi</title>
+<link rel="manifest" href="manifest.json">
+<style>
+*{margin:0;padding:0;box-sizing:border-box;user-select:none;-webkit-user-select:none;touch-action:none}
+html,body{width:100%;height:100%;overflow:hidden;background:#1e140c;font-family:sans-serif;color:#f7e7ce}
+canvas{display:block;width:100%;height:100%}
+#ui{position:fixed;inset:0;background:rgba(20,12,6,.9);display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:20px;z-index:10}
+#ui.hide{display:none}
+h1{font-size:32px;color:#ffcf70;margin-bottom:10px}
+p{max-width:380px;font-size:15px;color:#e2cbb0;margin-bottom:20px;line-height:1.4}
+#stat{background:#3e2816;border:1px solid #a67438;border-radius:10px;padding:12px 20px;margin-bottom:18px;display:none}
+button{background:#d48f28;color:#1e1004;font-weight:bold;font-size:18px;padding:14px 32px;border:2px solid #ffe094;border-radius:12px;cursor:pointer}
+</style>
 </head>
 <body>
-
-<div id="overlay">
-  <div class="badge">ANTİKA AYRIŞTIRMA ATÖLYESİ</div>
-  <h1 id="title-text">Kargo Bandı</h1>
-  <p id="desc-text">Banttan gelen tarihi eserleri düşmeden aşağıdaki doğru ahşap sandıklara sürükle ve paketle!</p>
-  <div class="stats-box" id="final-stats">
-    <div id="final-score" style="font-size: 20px; font-weight: bold; color: #ffcf70;">Skor: 0</div>
-    <div id="best-score" style="font-size: 14px; color: #d8be9e; margin-top: 4px;">En Yüksek: 0</div>
-  </div>
-  <button id="start-btn">MESAİYE BAŞLA</button>
+<div id="ui">
+  <h1 id="t">Kargo Bandı</h1>
+  <p id="d">Banttan gelen antikaları aşağıdaki doğru ahşap sandıklara sürükle ve paketle!</p>
+  <div id="stat"></div>
+  <button id="btn">MESAİYE BAŞLA</button>
 </div>
-
-<canvas id="gameCanvas"></canvas>
-
+<canvas id="c"></canvas>
 <script>
-  if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.register('sw.js').catch(() => {});
+if('serviceWorker' in navigator)navigator.serviceWorker.register('sw.js').catch(()=>{});
+const c=document.getElementById('c'),x=c.getContext('2d'),ui=document.getElementById('ui'),btn=document.getElementById('btn'),tEl=document.getElementById('t'),dEl=document.getElementById('d'),stEl=document.getElementById('stat');
+let W=0,H=0,bins=[],items=[],parts=[],texts=[],run=false,score=0,best=+localStorage.getItem('kb_best')||0,lives=3,lvl=1,combo=0,done=0,belt=0,timer=0,drag=null,dx=0,dy=0,last=0,ac=null;
+const CATS=[
+  {id:'v',n:'Çini Vazo',e:'🏺',bg:'#2b6cb0',bd:'#63b3ed'},
+  {id:'w',n:'Cep Saati',e:'🕰️',bg:'#b7791f',bd:'#f6e05e'},
+  {id:'c',n:'Pusula',e:'🧭',bg:'#2f855a',bd:'#68d391'},
+  {id:'k',n:'Kral Tacı',e:'👑',bg:'#9b2c2c',bd:'#fc8181'}
+];
+function snd(f,tp,du){
+  try{
+    if(!ac)ac=new(window.AudioContext||window.webkitAudioContext)();
+    if(ac.state==='suspended')ac.resume();
+    const o=ac.createOscillator(),g=ac.createGain();
+    o.type=tp;o.frequency.value=f;g.gain.setValueAtTime(.15,ac.currentTime);
+    g.gain.exponentialRampToValueAtTime(.001,ac.currentTime+du);
+    o.connect(g);g.connect(ac.destination);o.start();o.stop(ac.currentTime+du);
+  }catch(e){}
+}
+function resize(){
+  W=c.width=innerWidth;H=c.height=innerHeight;
+  const cols=W<540?2:4,rows=W<540?2:1,p=12,top=H*.55,ah=H*.4,bw=(W-p*(cols+1))/cols,bh=(ah-p*(rows-1))/rows;
+  bins=CATS.map((cat,i)=>({...cat,x:p+(i%cols)*(bw+p),y:top+Math.floor(i/cols)*(bh+p),w:bw,h:bh,pu:0}));
+}
+addEventListener('resize',resize);
+function spawn(){
+  const cat=CATS[Math.floor(Math.random()*CATS.length)],r=Math.min(36,Math.max(25,W*.065));
+  items.push({cat,x:-r,y:H*.32,r,drag:false});
+}
+function fx(px,py,col,txt){
+  for(let i=0;i<14;i++){const a=Math.random()*6.28,s=2+Math.random()*4;parts.push({x:px,y:py,vx:Math.cos(a)*s,vy:Math.sin(a)*s-2,l:1,col});}
+  if(txt)texts.push({x:px,y:py-15,txt,col,l:1});
+}
+function start(){
+  score=0;lives=3;lvl=1;combo=0;done=0;items=[];parts=[];texts=[];drag=null;timer=.4;run=true;
+  ui.classList.add('hide');spawn();
+}
+function over(){
+  run=false;if(score>best){best=score;localStorage.setItem('kb_best',best);}
+  tEl.textContent='Mesai Bitti!';dEl.textContent='Antikalar kırıldı veya banttan düştü.';
+  stEl.style.display='block';stEl.innerHTML=`<b>Puan: ${score}</b><br>En Yüksek: ${best}`;
+  btn.textContent='TEKRAR OYNA';ui.classList.remove('hide');
+}
+function pos(e){const r=c.getBoundingClientRect(),p=e.touches?e.touches[0]:e;return{x:p.clientX-r.left,y:p.clientY-r.top};}
+function down(e){
+  if(!run)return;const p=pos(e);
+  for(let i=items.length-1;i>=0;i--){
+    const it=items[i];
+    if(Math.hypot(p.x-it.x,p.y-it.y)<=it.r*1.5){drag=it;it.drag=true;dx=it.x-p.x;dy=it.y-p.y;snd(320,'sine',.07);break;}
   }
-
-  const canvas = document.getElementById('gameCanvas');
-  const ctx = canvas.getContext('2d');
-  const overlay = document.getElementById('overlay');
-  const startBtn = document.getElementById('start-btn');
-  const titleText = document.getElementById('title-text');
-  const descText = document.getElementById('desc-text');
-  const finalStats = document.getElementById('final-stats');
-  const finalScoreEl = document.getElementById('final-score');
-  const bestScoreEl = document.getElementById('best-score');
-
-  let W = 0, H = 0;
-  function resize() {
-    W = canvas.width = window.innerWidth;
-    H = canvas.height = window.innerHeight;
-    layoutBins();
-  }
-  window.addEventListener('resize', resize);
-
-  // Ses Efektleri (Harici dosya gerektirmez)
-  const AudioCtx = window.AudioContext || window.webkitAudioContext;
-  let audioCtx = null;
-  function playTone(freq, type, duration, vol = 0.15) {
-    try {
-      if (!audioCtx) audioCtx = new AudioCtx();
-      if (audioCtx.state === 'suspended') audioCtx.resume();
-      const osc = audioCtx.createOscillator();
-      const gain = audioCtx.createGain();
-      osc.type = type;
-      osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
-      gain.gain.setValueAtTime(vol, audioCtx.currentTime);
-      gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + duration);
-      osc.connect(gain);
-      gain.connect(audioCtx.destination);
-      osc.start();
-      osc.stop(audioCtx.currentTime + duration);
-    } catch (e) {}
-  }
-
-  function soundSuccess(combo) {
-    const base = 440 + Math.min(combo, 10) * 35;
-    playTone(base, 'triangle', 0.14, 0.18);
-    setTimeout(() => playTone(base * 1.25, 'sine', 0.18, 0.15), 70);
-  }
-  function soundError() {
-    playTone(150, 'sawtooth', 0.25, 0.2);
-    setTimeout(() => playTone(110, 'sawtooth', 0.3, 0.2), 110);
-  }
-  function soundPick() {
-    playTone(320, 'sine', 0.08, 0.1);
-  }
-
-  // Antika Kategorileri
-  const CATEGORIES = [
-    { id: 'vase', name: 'Çini Vazo', icon: '🏺', color: '#2b6cb0', border: '#63b3ed' },
-    { id: 'watch', name: 'Cep Saati', icon: ' pocket', emoji: '🕰️', color: '#b7791f', border: '#f6e05e' },
-    { id: 'compass', name: 'Pusula', emoji: '🧭', color: '#2f855a', border: '#68d391' },
-    { id: 'crown', name: 'Kral Tacı', emoji: '👑', color: '#9b2c2c', border: '#fc8181' }
-  ];
-  CATEGORIES[0].emoji = '🏺';
-
-  let bins = [];
-  function layoutBins() {
-    const cols = W < 540 ? 2 : 4;
-    const rows = W < 540 ? 2 : 1;
-    const pad = 14;
-    const areaTop = H * 0.56;
-    const areaH = H * 0.38;
-    const binW = (W - pad * (cols + 1)) / cols;
-    const binH = (areaH - pad * (rows - 1)) / rows;
-
-    bins = CATEGORIES.map((cat, i) => {
-      const c = i % cols;
-      const r = Math.floor(i / cols);
-      return {
-        ...cat,
-        x: pad + c * (binW + pad),
-        y: areaTop + r * (binH + pad),
-        w: binW,
-        h: binH,
-        pulse: 0
-      };
-    });
-  }
-
-  // Oyun Durumu
-  let gameRunning = false;
-  let score = 0;
-  let bestScore = parseInt(localStorage.getItem('kargo_best') || '0', 10);
-  let lives = 3;
-  let level = 1;
-  let combo = 0;
-  let sortedCount = 0;
-  let items = [];
-  let particles = [];
-  let floatingTexts = [];
-  let beltOffset = 0;
-  let spawnTimer = 0;
-  let draggedItem = null;
-  let dragOffsetX = 0;
-  let dragOffsetY = 0;
-
-  function getBeltY() {
-    return H * 0.32;
-  }
-
-  function spawnItem() {
-    const cat = CATEGORIES[Math.floor(Math.random() * CATEGORIES.length)];
-    const radius = Math.min(36, Math.max(26, W * 0.065));
-    items.push({
-      cat: cat,
-      x: -radius - 10,
-      y: getBeltY(),
-      r: radius,
-      isDragging: false,
-      wobble: Math.random() * Math.PI * 2
-    });
-  }
-
-  function addParticles(x, y, color) {
-    for (let i = 0; i < 16; i++) {
-      const ang = Math.random() * Math.PI * 2;
-      const spd = 2 + Math.random() * 5;
-      particles.push({
-        x, y,
-        vx: Math.cos(ang) * spd,
-        vy: Math.sin(ang) * spd - 2,
-        life: 1,
-        color
-      });
+}
+function move(e){if(run&&drag){e.preventDefault();const p=pos(e);drag.x=p.x+dx;drag.y=p.y+dy;}}
+function up(){
+  if(!run||!drag)return;const it=drag;it.drag=false;drag=null;
+  const b=bins.find(b=>it.x>=b.x&&it.x<=b.x+b.w&&it.y>=b.y&&it.y<=b.y+b.h);
+  if(b){
+    items.splice(items.indexOf(it),1);
+    if(b.id===it.cat.id){
+      combo++;done++;const pts=10+combo*2;score+=pts;b.pu=1;snd(440+combo*25,'triangle',.14);
+      fx(it.x,it.y,b.bd,`+${pts}`);if(done%10===0){lvl++;fx(W/2,H*.2,'#ffcf70',`SEVİYE ${lvl}!`);}
+    }else{
+      combo=0;lives--;snd(140,'sawtooth',.25);fx(it.x,it.y,'#fc8181','YANLIŞ!');if(lives<=0)over();
     }
-  }
-
-  function addFloatingText(x, y, text, color) {
-    floatingTexts.push({ x, y, text, color, life: 1 });
-  }
-
-  function startGame() {
-    score = 0;
-    lives = 3;
-    level = 1;
-    combo = 0;
-    sortedCount = 0;
-    items = [];
-    particles = [];
-    floatingTexts = [];
-    draggedItem = null;
-    spawnTimer = 0.5;
-    gameRunning = true;
-    overlay.classList.add('hidden');
-    spawnItem();
-  }
-
-  function endGame() {
-    gameRunning = false;
-    if (score > bestScore) {
-      bestScore = score;
-      localStorage.setItem('kargo_best', bestScore);
-    }
-    titleText.textContent = 'Mesai Bitti!';
-    descText.textContent = 'Atölyedeki antikalar kırıldı veya banttan düştü. Tekrar deneyip rekorunu geç!';
-    finalStats.classList.add('show');
-    finalScoreEl.textContent = `Toplam Puan: ${score}`;
-    bestScoreEl.textContent = `En Yüksek Puan: ${bestScore}`;
-    startBtn.textContent = 'TEKRAR OYNA';
-    overlay.classList.remove('hidden');
-  }
-
-  // Dokunmatik ve Fare Kontrolleri
-  function getPointerPos(e) {
-    const rect = canvas.getBoundingClientRect();
-    const clientX = e.touches ? e.touches[0].clientX : e.clientX;
-    const clientY = e.touches ? e.touches[0].clientY : e.clientY;
-    return { x: clientX - rect.left, y: clientY - rect.top };
-  }
-
-  function onDown(e) {
-    if (!gameRunning) return;
-    const pos = getPointerPos(e);
-    for (let i = items.length - 1; i >= 0; i--) {
-      const it = items[i];
-      const dist = Math.hypot(pos.x - it.x, pos.y - it.y);
-      if (dist <= it.r * 1.45) {
-        draggedItem = it;
-        it.isDragging = true;
-        dragOffsetX = it.x - pos.x;
-        dragOffsetY = it.y - pos.y;
-        soundPick();
-        break;
+  }else it.y=H*.32;
+}
+c.addEventListener('mousedown',down);addEventListener('mousemove',move);addEventListener('mouseup',up);
+c.addEventListener('touchstart',down,{passive:false});addEventListener('touchmove',move,{passive:false});addEventListener('touchend',up);
+btn.addEventListener('click',start);
+function loop(ts){
+  const dt=Math.min(.05,(ts-last)/1000||0);last=ts;
+  if(run){
+    const spd=75+(lvl-1)*18;belt=(belt+spd*dt)%40;timer-=dt;
+    if(timer<=0){spawn();timer=Math.max(.85,2.2-(lvl-1)*.16);}
+    for(let i=items.length-1;i>=0;i--){
+      const it=items[i];
+      if(!it.drag){
+        it.x+=spd*dt;it.y=H*.32;
+        if(it.x-it.r>W){items.splice(i,1);combo=0;lives--;snd(140,'sawtooth',.25);fx(W-60,H*.28,'#fc8181','KAÇTI!');if(lives<=0)over();}
       }
     }
+    bins.forEach(b=>{if(b.pu>0)b.pu=Math.max(0,b.pu-dt*3);});
+    for(let i=parts.length-1;i>=0;i--){const p=parts[i];p.x+=p.vx;p.y+=p.vy;p.vy+=.15;p.l-=dt*1.8;if(p.l<=0)parts.splice(i,1);}
+    for(let i=texts.length-1;i>=0;i--){const f=texts[i];f.y-=40*dt;f.l-=dt*1.3;if(f.l<=0)texts.splice(i,1);}
   }
-
-  function onMove(e) {
-    if (!gameRunning || !draggedItem) return;
-    e.preventDefault();
-    const pos = getPointerPos(e);
-    draggedItem.x = pos.x + dragOffsetX;
-    draggedItem.y = pos.y + dragOffsetY;
-  }
-
-  function onUp() {
-    if (!gameRunning || !draggedItem) return;
-    const it = draggedItem;
-    it.isDragging = false;
-    draggedItem = null;
-
-    let droppedBin = null;
-    for (const b of bins) {
-      if (it.x >= b.x && it.x <= b.x + b.w && it.y >= b.y && it.y <= b.y + b.h) {
-        droppedBin = b;
-        break;
-      }
-    }
-
-    if (droppedBin) {
-      const idx = items.indexOf(it);
-      if (idx > -1) items.splice(idx, 1);
-
-      if (droppedBin.id === it.cat.id) {
-        combo++;
-        sortedCount++;
-        const pts = 10 + combo * 2;
-        score += pts;
-        droppedBin.pulse = 1;
-        soundSuccess(combo);
-        addParticles(it.x, it.y, droppedBin.border);
-        addFloatingText(it.x, it.y - 20, `+${pts}${combo > 1 ? ' (x' + combo + ')' : ''}`, '#68d391');
-
-        if (sortedCount % 10 === 0) {
-          level++;
-          addFloatingText(W / 2, H * 0.2, `SEVİYE ${level}!`, '#ffcf70');
-        }
-      } else {
-        combo = 0;
-        lives--;
-        soundError();
-        addParticles(it.x, it.y, '#fc8181');
+  x.fillStyle='#23150a';x.fillRect(0,0,W,H);
+  x.fillStyle='rgba(0,0,0,.5)';x.fillRect(0,0,W,56);
+  x.font='bold 18px sans-serif';x.fillStyle='#ffcf70';x.textAlign='left';x.fillText('💰 '+score,16,35);
+  x.textAlign='center';x.fillStyle='#e2cbb0';x.fillText('Seviye '+lvl,W/2,35);
+  x.textAlign='right';x.fillText('❤️'.repeat(Math.max(0,lives))+'🖤'.repeat(Math.max(0,3-lives)),W-16,35);
+  const by=H*.32;x.fillStyle='#3b3734';x.fillRect(0,by-40,W,80);
+  x.fillStyle='#6e4722';x.fillRect(0,by-48,W,8);x.fillRect(0,by+40,W,8);
+  x.strokeStyle='#555';x.lineWidth=3;
+  for(let i=-40+belt;i<W+40;i+=40){x.beginPath();x.moveTo(i,by-35);x.lineTo(i+15,by);x.lineTo(i,by+35);x.stroke();}
+  bins.forEach(b=>{
+    x.save();if(b.pu>0){const s=1+Math.sin(b.pu*3.14)*.06;x.translate(b.x+b.w/2,b.y+b.h/2);x.scale(s,s);x.translate(-(b.x+b.w/2),-(b.y+b.h/2));}
+    x.fillStyle=b.bg;x.beginPath();x.roundRect(b.x,b.y,b.w,b.h,12);x.fill();
+    x.strokeStyle=b.bd;x.lineWidth=3;x.stroke();
+    x.font=Math.min(40,b.h*.42)+'px sans-serif';x.textAlign='center';x.textBaseline='middle';x.fillText(b.e,b.x+b.w/2,b.y+b.h*.42);
+    x.font='bold 14px sans-serif';x.fillStyle='#fff';x.fillText(b.n,b.x+b.w/2,b.y+b.h*.78);x.restore();
+  });
+  items.forEach(it=>{
+    x.save();x.translate(it.x,it.y);if(it.drag)x.scale(1.2,1.2);
+    x.fillStyle='#8c5828';x.beginPath();x.arc(0,0,it.r,0,6.28);x.fill();
+    x.strokeStyle='#ffcf70';x.lineWidth=3;x.stroke();
+    x.font=(it.r*1.2)+'px sans-serif';x.textAlign='center';x.textBaseline='middle';x.fillText(it.cat.e,0,2);x.restore();
+  });
+  parts.forEach(p=>{x.globalAlpha=Math.max(0,p.l);x.fillStyle=p.col;x.beginPath();x.arc(p.x,p.y,5,0,6.28);x.fill();});
+  texts.forEach(f=>{x.globalAlpha=Math.max(0,f.l);x.font='bold 18px sans-serif';x.fillStyle=f.col;x.textAlign='center';x.fillText(f.txt,f.x,f.y);});
+  x.globalAlpha=1;requestAnimationFrame(loop);
+}
+resize();requestAnimationFrame(loop);
+</script>
+</body>
+</html>
